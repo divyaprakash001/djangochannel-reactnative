@@ -25,21 +25,36 @@ SECRET_KEY = 'django-insecure-%sqb99c4vkoec0m_o2s0-5!!t#r6x8p5=#*%zz&#ya*cmky=-a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost","10.0.2.2"]
+
+AUTH_USER_MODEL = 'chat.User'
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'chat',
 ]
 
 MIDDLEWARE = [
+   'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -50,6 +65,15 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'core.urls'
+
+# Allow requests from mobile apps
+CORS_ALLOW_ALL_ORIGINS = True  # for dev only
+
+# OR use this for more control:
+# CORS_ALLOWED_ORIGINS = [
+#     "http://10.0.2.2:8000",
+#     "http://192.168.x.x:8000",
+# ]
 
 TEMPLATES = [
     {
@@ -120,3 +144,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
