@@ -4,7 +4,9 @@ from channels.generic.websocket import WebsocketConsumer
 from asgiref.sync import async_to_sync
 from django.core.files.base import ContentFile
 
-from .serializers import UserSerializer
+from .models import User
+from django.db.models import Q
+from .serializers import SearchSerializer, UserSerializer
 
 class ChatConsumer(WebsocketConsumer):
 
@@ -40,11 +42,15 @@ class ChatConsumer(WebsocketConsumer):
     data = json.loads(text_data)
     data_source = data.get("source")
     # Pretty prit python dict
-    print('recieve', json.dumps(data,indent=2))
+    print('recieve-==>', json.dumps(data,indent=2))
 
     # Thumbnail upload
     if data_source == 'thumbnail':
       self.receive_thumbnail(data)
+
+# search / filter for users
+    if(data_source == 'search'):
+      self.receive_search(data)
 
   def receive_thumbnail(self,data):
     user = self.scope['user']
@@ -58,12 +64,38 @@ class ChatConsumer(WebsocketConsumer):
     user.thumbnail.save(filename,image,save=True)
     # serialize user
     serialized = UserSerializer(user)
-    print('serialized==>',serialized)
     # send uploaded user data including new thumbnail
     self.send_group(self.username,'thumbnail',serialized.data)
 
+
+  def receive_search(self,data):
+    # ...
+    query = data.get('query')
+    # get users from query seach form
+    users = User.objects.filter(
+      Q(username__istartswith=query) | 
+      Q(first_name__istartswith=query) | 
+      Q(last_name__istartswith=query)       
+      ).exclude(
+        username=self.username
+      )
+    # .annotate(
+    #     pending_them=Exists(
+    #       Connection
+    #     )
+    #     pending_me=...
+    #     connected=...
+    #   )
+    print('users query',users.query)
+    print('users',users)
+    # serialize the results
+    serialized = SearchSerializer(users,many=True)
+    # send search results back to this user
+    self.send_group(self.username,'search',serialized.data)
+
+
+
   # catch/all broadcast to client helpers
-  # 
   def send_group(self,group,source,data):
     response = {
       'type':'broadcast_group',
@@ -73,6 +105,7 @@ class ChatConsumer(WebsocketConsumer):
     async_to_sync(self.channel_layer.group_send)(
       group,response
     )
+
 
   def broadcast_group(self,data):
     '''
