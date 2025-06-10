@@ -4,9 +4,9 @@ from channels.generic.websocket import WebsocketConsumer
 from asgiref.sync import async_to_sync
 from django.core.files.base import ContentFile
 
-from .models import User
-from django.db.models import Q
-from .serializers import SearchSerializer, UserSerializer
+from .models import User, Connection
+from django.db.models import Q,  Exists, OuterRef
+from .serializers import SearchSerializer, UserSerializer, RequestSerializer
 
 class ChatConsumer(WebsocketConsumer):
 
@@ -48,9 +48,29 @@ class ChatConsumer(WebsocketConsumer):
     if data_source == 'thumbnail':
       self.receive_thumbnail(data)
 
-# search / filter for users
-    if(data_source == 'search'):
+    # search / filter for users
+    elif(data_source == 'search'):
       self.receive_search(data)
+
+    # make friend request request.connect
+    elif(data_source == 'request.connect'):
+      self.receive_request_connect(data)
+
+    # get request lists  request.list
+    elif(data_source == 'request.list'):
+      print("request list call hua")
+      self.receive_request_list(data)
+
+
+    # accept request request.accept
+    elif(data_source == 'request.accept'):
+      print("request accept call hua")
+      self.receive_request_accept(data)
+
+    # accept request request.accept
+    elif(data_source == 'request.friends'):
+      print("request accept call hua")
+      self.receive_request_friends(data)
 
   def receive_thumbnail(self,data):
     user = self.scope['user']
@@ -58,7 +78,6 @@ class ChatConsumer(WebsocketConsumer):
     # convert base64 into django content file
     image_str = data.get('base64')
     image = ContentFile(base64.b64decode(image_str))
-    print(image)
     # update thumbnail field
     filename = data.get('filename')
     user.thumbnail.save(filename,image,save=True)
@@ -68,6 +87,106 @@ class ChatConsumer(WebsocketConsumer):
     self.send_group(self.username,'thumbnail',serialized.data)
 
 
+  def receive_request_connect(self,data):
+    username = data.get("username")
+    # attempt to fetch the receiving user
+    try:
+      receiver = User.objects.get(username=username)
+      print("receiver==>",receiver)
+    except User.DoesNotExist:
+      print("error : user not found")
+      return
+    
+    # create connection
+    connection, _ = Connection.objects.get_or_create(
+      sender = self.scope['user'],
+      receiver = receiver
+    )
+
+    # serialized connection
+    serialized = RequestSerializer(connection)
+
+    # send back to sender
+    self.send_group(connection.sender.username,'request.connect',serialized.data)
+
+    # send to receiver
+    self.send_group(
+      connection.receiver.username, 'request.connect', serialized.data
+    )
+
+
+# receive request list
+  def receive_request_list(self,data):
+    user = self.scope['user']
+    # get the connection made to this user
+    connections = Connection.objects.filter(
+      receiver=user,
+      accepted=False
+    )
+
+    # serialized connection
+    serialized = RequestSerializer(connections,many=True)
+
+    # send request lists to this user
+    print(connections)
+    self.send_group(user.username,'request.list',serialized.data)
+    
+
+
+
+
+# receive request accept receive_request_accept
+  def receive_request_accept(self,data):
+    print("receive accept call hua")
+    user = self.scope['user']
+    username = data.get('username')
+
+    sender = User.objects.get(username=username)
+    # get the connection made to this user
+    connection = Connection.objects.get(
+      receiver=user,
+      sender=sender,
+      accepted=False
+    )
+    print("connection to accept", connection)
+    print("connection-->", connection.accepted)
+
+    # make the connection accept
+    connection.accepted = True
+    connection.save()
+    print("connection-->", connection.accepted)
+
+    # serialized connection
+    serialized = RequestSerializer(connection)
+
+    # send request lists to this user
+    # print(connections)
+    self.send_group(user.username,'request.accept',serialized.data)
+    
+
+#  request friends
+  def receive_request_friends(self,data):
+    print("friend list call hua")
+    user = self.scope['user']
+    # username = data.get("username")
+    # get the connection made to this user
+    connections = Connection.objects.filter(
+      receiver=user,
+      accepted=True
+    )
+
+    print("mere sare friends bhai")
+
+    # serialized connection
+    serialized = RequestSerializer(connections,many=True)
+
+    # send request lists to this user
+    print(connections)
+    self.send_group(user.username,'request.friends',serialized.data)
+    
+
+
+# user search
   def receive_search(self,data):
     # ...
     query = data.get('query')
@@ -78,16 +197,32 @@ class ChatConsumer(WebsocketConsumer):
       Q(last_name__istartswith=query)       
       ).exclude(
         username=self.username
+      ).annotate(
+        pending_them= Exists(
+          Connection.objects.filter(
+            sender=self.scope['user'],
+            receiver = OuterRef('id'),
+            accepted=False
+          )
+        ),
+        
+        pending_me= Exists(
+          Connection.objects.filter(
+            sender= OuterRef('id'),
+            receiver = self.scope['user'],
+            accepted=False
+          )
+        ),
+
+        connected= Exists(
+          Connection.objects.filter(
+           Q(sender=self.scope['user'], receiver = OuterRef('id')) |
+           Q(receiver=self.scope['user'], sender = OuterRef('id')) ,
+           accepted=True
+          )
+        ),
+
       )
-    # .annotate(
-    #     pending_them=Exists(
-    #       Connection
-    #     )
-    #     pending_me=...
-    #     connected=...
-    #   )
-    print('users query',users.query)
-    print('users',users)
     # serialize the results
     serialized = SearchSerializer(users,many=True)
     # send search results back to this user
