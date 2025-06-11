@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 
 from .models import User, Connection
 from django.db.models import Q,  Exists, OuterRef
-from .serializers import SearchSerializer, UserSerializer, RequestSerializer
+from .serializers import SearchSerializer, UserSerializer, RequestSerializer, FriendSerializer
 
 class ChatConsumer(WebsocketConsumer):
 
@@ -68,7 +68,7 @@ class ChatConsumer(WebsocketConsumer):
       self.receive_request_accept(data)
 
     # accept request request.accept
-    elif(data_source == 'request.friends'):
+    elif(data_source == 'friend.list'):
       print("request accept call hua")
       self.receive_request_friends(data)
 
@@ -141,17 +141,19 @@ class ChatConsumer(WebsocketConsumer):
     user = self.scope['user']
     username = data.get('username')
 
-    sender = User.objects.get(username=username)
+    # sender = User.objects.get(username=username)
     # get the connection made to this user
-    connection = Connection.objects.get(
+    try:
+      connection = Connection.objects.get(
+      sender__username=username,
       receiver=user,
-      sender=sender,
       accepted=False
-    )
-    print("connection to accept", connection)
-    print("connection-->", connection.accepted)
+      )
+    except Connection.DoesNotExist:
+      print("Error:: connection does not exists")
+      return
 
-    # make the connection accept
+    # update the connection to accepted=true
     connection.accepted = True
     connection.save()
     print("connection-->", connection.accepted)
@@ -159,9 +161,11 @@ class ChatConsumer(WebsocketConsumer):
     # serialized connection
     serialized = RequestSerializer(connection)
 
-    # send request lists to this user
-    # print(connections)
-    self.send_group(user.username,'request.accept',serialized.data)
+    # send accepted request to sender
+    self.send_group(connection.sender.username,'request.accept',serialized.data)
+
+    # send accepted request to receiver
+    self.send_group(connection.receiver.username,'request.accept',serialized.data)
     
 
 #  request friends
@@ -171,18 +175,19 @@ class ChatConsumer(WebsocketConsumer):
     # username = data.get("username")
     # get the connection made to this user
     connections = Connection.objects.filter(
-      receiver=user,
+      Q(sender=user)|Q(receiver=user),
       accepted=True
     )
 
-    print("mere sare friends bhai")
-
+    print("maine sare connections print krke de diya",connections)
     # serialized connection
-    serialized = RequestSerializer(connections,many=True)
+    serialized = FriendSerializer(connections, 
+                                  context={'user':user} ,
+                                  many=True)
 
     # send request lists to this user
     print(connections)
-    self.send_group(user.username,'request.friends',serialized.data)
+    self.send_group(user.username,'friend.list',serialized.data)
     
 
 
