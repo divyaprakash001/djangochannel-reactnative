@@ -32,7 +32,7 @@ class SignInView(APIView):
     user = authenticate(username=username,password=password)
     if not user:
       return Response(status=401)
-    
+    print("signin ho gya",user)
     user_data = get_auth_for_user(user)
 
     return Response(user_data)
