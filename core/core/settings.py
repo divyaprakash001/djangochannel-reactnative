@@ -51,7 +51,13 @@ CHANNEL_LAYERS = {
     'BACKEND':'channels_redis.core.RedisChannelLayer',
     'CONFIG':{
     #   'hosts':[('127.0.0.1',6379)]
-    "hosts": [os.environ.get('REDIS_URL')],
+    # "hosts": [os.environ.get('REDIS_URL')],
+    "hosts": [
+                {
+                    "address": "rediss://default:Ab7GAAIjcDE2OWRmMjc5NWEyNTE0NmM2OGEwMDBkM2Y4YzFlOTkzZnAxMA@included-cheetah-48838.upstash.io:6379",
+                    "ssl": True
+                }
+            ]
     }
   }
 }
