@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,7 +26,7 @@ SECRET_KEY = 'django-insecure-%sqb99c4vkoec0m_o2s0-5!!t#r6x8p5=#*%zz&#ya*cmky=-a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['chat-backend-1lyy.onrender.com',"localhost","10.0.2.2","127.0.0.1"]
+ALLOWED_HOSTS = ['https://chat-backend-1lyy.onrender.com',"localhost","10.0.2.2","127.0.0.1"]
 
 AUTH_USER_MODEL = 'chat.User'
 
@@ -49,7 +50,8 @@ CHANNEL_LAYERS = {
   'default' : {
     'BACKEND':'channels_redis.core.RedisChannelLayer',
     'CONFIG':{
-      'hosts':[('127.0.0.1',6379)]
+    #   'hosts':[('127.0.0.1',6379)]
+    "hosts": [os.environ.get('REDIS_URL')],
     }
   }
 }
