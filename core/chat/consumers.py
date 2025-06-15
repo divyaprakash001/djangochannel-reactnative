@@ -23,7 +23,7 @@ class ChatConsumer(WebsocketConsumer):
 
 	def connect(self):
 		user = self.scope['user']
-		print(user, user.is_authenticated)
+		# print(user, user.is_authenticated)
 
 		if not user.is_authenticated:
 			return
@@ -51,7 +51,7 @@ class ChatConsumer(WebsocketConsumer):
 		data_source = data.get('source')
 
 		# Pretty print  python dict
-		print('receive', json.dumps(data, indent=2))
+		# print('receive', json.dumps(data, indent=2))
 
 		# Get friend list
 		if data_source == 'friend.list':
@@ -217,6 +217,7 @@ class ChatConsumer(WebsocketConsumer):
 
 
 	def receive_message_type(self, data):
+		# print("receive message type run hua function")
 		user = self.scope['user']
 		recipient_username = data.get('username')
 		data = {
