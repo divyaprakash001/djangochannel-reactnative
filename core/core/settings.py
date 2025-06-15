@@ -55,7 +55,8 @@ CHANNEL_LAYERS = {
     "hosts": [
                 {
                     "address": "rediss://default:Ab7GAAIjcDE2OWRmMjc5NWEyNTE0NmM2OGEwMDBkM2Y4YzFlOTkzZnAxMA@included-cheetah-48838.upstash.io:6379",
-                    "ssl": True
+                    "ssl": True,
+                    "max_connections": 100,
                 }
             ]
     }
