@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
-
+from redis.asyncio.connection import SSLConnection
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -55,7 +55,7 @@ CHANNEL_LAYERS = {
     "hosts": [
                 {
                     "address": "rediss://default:Ab7GAAIjcDE2OWRmMjc5NWEyNTE0NmM2OGEwMDBkM2Y4YzFlOTkzZnAxMA@included-cheetah-48838.upstash.io:6379",
-                    "ssl": True,
+                    "connection_class": SSLConnection,
                     "max_connections": 100,
                 }
             ]
