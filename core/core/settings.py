@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-%sqb99c4vkoec0m_o2s0-5!!t#r6x8p5=#*%zz&#ya*cmky=-a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["localhost","10.0.2.2","127.0.0.1"]
+ALLOWED_HOSTS = ['chat-backend-1lyy.onrender.com',"localhost","10.0.2.2","127.0.0.1"]
 
 AUTH_USER_MODEL = 'chat.User'
 
